@@ -1,0 +1,22 @@
+# Gradle / 빌드 산출물
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# 로컬 설정·비밀값 (커밋 금지)
+secret.properties
+*.env
+.env*
+
+# 로컬 H2 데이터 파일
+data/
+
+# OS
+Thumbs.db
+.DS_Store
+.vscode/

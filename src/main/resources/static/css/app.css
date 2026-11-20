@@ -1,0 +1,269 @@
+:root {
+    --brand: #2f6f6a;
+    --brand-dark: #255854;
+    --matched: #1f7a4d;
+    --check: #9a6a00;
+    --page: #f3f5f4;
+}
+
+body {
+    background: var(--page);
+    word-break: keep-all;
+    overflow-x: hidden;
+}
+
+/* ── 머리·막대 ─────────────────────────────── */
+.app-header {
+    background: var(--brand);
+    color: #fff;
+}
+
+.profile-summary .badge {
+    background: rgba(255, 255, 255, .16);
+    font-weight: 500;
+}
+
+.toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--page);
+    border-bottom: 1px solid #dfe5e3;
+}
+
+.toolbar-inputs input {
+    width: min(220px, 50vw);
+}
+
+.toolbar-inputs select {
+    width: auto;
+}
+
+.nav-pills .nav-link {
+    padding: .25rem .75rem;
+    color: #444;
+}
+
+.nav-pills .nav-link.active {
+    background: var(--brand);
+}
+
+.btn-brand {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+
+.btn-brand:hover, .btn-brand:focus {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: #fff;
+}
+
+/* 카테고리 칩 */
+.chips {
+    display: flex;
+    gap: 4px;
+    align-items: baseline;
+    font-size: .8rem;
+}
+
+.chip-label {
+    color: #6c757d;
+    width: 64px;
+    flex: none;
+}
+
+.filter-chip {
+    border: 1px solid #cfd8d5;
+    background: #fff;
+    border-radius: 999px;
+    padding: 1px 10px;
+    color: #333;
+    font-size: .8rem;
+}
+
+.filter-chip.on {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+
+.filter-chip .n {
+    opacity: .65;
+    margin-left: 3px;
+}
+
+/* ── 격자·카드 ─────────────────────────────── */
+.benefit-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 576px) {
+    .benefit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 992px) {
+    .benefit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1400px) {
+    .benefit-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.bcard {
+    background: #fff;
+    border: 1px solid #e1e6e4;
+    border-top: 4px solid var(--check);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    height: 210px;
+    min-width: 0;
+}
+
+.bcard.MATCHED {
+    border-top-color: var(--matched);
+}
+
+.bcard.EXCLUDED {
+    border-top-color: #adb5bd;
+    background: #fafbfb;
+}
+
+.bcard.EXCLUDED .bname {
+    color: #555;
+}
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    font-size: .75rem;
+}
+
+.status {
+    color: #fff;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-weight: 600;
+}
+
+.status.MATCHED { background: var(--matched); }
+.status.CHECK { background: var(--check); }
+.status.EXCLUDED { background: #868e96; }
+.breason.no { color: #6c757d; }
+
+.type-badge {
+    font-size: .72rem;
+    background: #eef4f2;
+    color: #24564f;
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+
+.source {
+    color: #6c757d;
+    margin-left: auto;
+}
+
+.bname {
+    font-weight: 700;
+    font-size: .98rem;
+    margin: 6px 0 4px;
+    line-height: 1.35;
+}
+
+.clamp2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.clamp1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bsupport { font-size: .85rem; color: #333; }
+.bperiod { font-size: .78rem; color: #6c757d; margin-top: 4px; }
+.bperiod.CLOSED { color: #b02a37; font-weight: 600; }
+.bperiod.UPCOMING { color: #0a58ca; }
+
+.fresh {
+    display: inline-block;
+    font-size: .65rem;
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 0 4px;
+    margin-right: 4px;
+    vertical-align: 2px;
+    color: #fff;
+}
+
+.fresh.new { background: #d63384; }
+.fresh.upd { background: #0d6efd; }
+
+.fav {
+    border: 0;
+    background: none;
+    padding: 0 2px;
+    font-size: 1rem;
+    line-height: 1;
+    color: #adb5bd;
+}
+
+.fav.on { color: #e0a800; }
+.breason { font-size: .76rem; color: #8a5a00; margin-top: 2px; }
+.breason.ok { color: var(--matched); }
+
+.bactions {
+    margin-top: auto;
+    display: flex;
+    gap: 6px;
+}
+
+.bactions .btn {
+    font-size: .8rem;
+    padding: .2rem .6rem;
+}
+
+@media (max-width: 575.98px) {
+    .bcard { height: auto; }
+    .profile-summary { display: none !important; }
+    .toolbar-inputs { width: 100%; }
+    .toolbar-inputs input { flex: 1; width: auto; }
+}
+
+/* ── 서랍·상세 ─────────────────────────────── */
+.profile-panel {
+    --bs-offcanvas-width: 380px;
+}
+
+.detail h3 {
+    font-size: .8rem;
+    color: #6c757d;
+    margin: 14px 0 4px;
+    font-weight: normal;
+}
+
+.detail .txt {
+    white-space: pre-line;
+    font-size: .9rem;
+}
+
+.chip {
+    display: inline-block;
+    font-size: .72rem;
+    padding: .05rem .45rem;
+    border-radius: 1rem;
+    background: #e8efee;
+    color: #2f504d;
+    margin-right: .2rem;
+}

@@ -1,0 +1,29 @@
+<component name="ProjectRunConfigurationManager">
+  <!--
+    IntelliJ 실행 설정 — 위쪽 실행 목록에서 "family-support (local)" 선택 후 ▶(실행) / 🐞(디버그).
+    Spring Boot 내장 Tomcat으로 http://localhost:8090 에 뜬다(정산앱 8080과 함께 띄울 수 있게 포트를 나눔).
+    local 프로필 = 수동 수집 API(POST /api/collect) 허용. 작업 폴더 = 프로젝트 루트(secret.properties·data/를 여기서 씀).
+  -->
+  <configuration default="false" name="family-support (local)" type="GradleRunConfiguration" factoryName="Gradle">
+    <ExternalSystemSettings>
+      <option name="executionName" />
+      <option name="externalProjectPath" value="$PROJECT_DIR$" />
+      <option name="externalSystemIdString" value="GRADLE" />
+      <option name="scriptParameters" value="--args='--spring.profiles.active=local'" />
+      <option name="taskDescriptions">
+        <list />
+      </option>
+      <option name="taskNames">
+        <list>
+          <option value="bootRun" />
+        </list>
+      </option>
+      <option name="vmOptions" />
+    </ExternalSystemSettings>
+    <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+    <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+    <DebugAllEnabled>false</DebugAllEnabled>
+    <RunAsTest>false</RunAsTest>
+    <method v="2" />
+  </configuration>
+</component>
