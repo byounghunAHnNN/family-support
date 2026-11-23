@@ -8,7 +8,9 @@ import com.familysupport.app.benefit.domain.LifeStage;
 import com.familysupport.app.benefit.domain.Region;
 import com.familysupport.app.collect.domain.BenefitFeed;
 import com.familysupport.app.collect.domain.FeedException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +36,11 @@ public class BokjiroLocalFeed implements BenefitFeed {
     private static final Duration TIMEOUT = Duration.ofSeconds(120);
 
     private final PublicDataHttp http;
+    private final Clock clock;
 
-    public BokjiroLocalFeed(PublicDataHttp http) {
+    public BokjiroLocalFeed(PublicDataHttp http, Clock clock) {
         this.http = http;
+        this.clock = clock;
     }
 
     @Override
@@ -54,7 +58,7 @@ public class BokjiroLocalFeed implements BenefitFeed {
             drafts.addAll(found);
         }
         // 상세(지원대상·선정기준·지원내용·시행기간) — 원문 수정일이 같으면 지난번 상세를 다시 쓴다
-        return BokjiroDetail.enrich(http, BokjiroDetail.LOCAL_URL, true, drafts, previous, true);
+        return BokjiroDetail.enrich(http, BokjiroDetail.LOCAL_URL, true, drafts, previous, LocalDate.now(clock));
     }
 
     private List<Map<String, String>> fetchSido(String sido) {

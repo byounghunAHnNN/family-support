@@ -40,25 +40,30 @@ final class BokjiroDetail {
     }
 
     /**
-     * 초안마다 상세를 붙인다.
+     * 초안마다 상세를 붙인다. 공공데이터포털 일일 호출 한도가 있어(2026-11-23 98건 성공 뒤 HTTP 429 실측),
+     * 받아 둔 상세(DB에 저장된 지난번 값)는 다시 쓰고 필요한 것만 부른다 — {@link #needsCall} 참고.
+     * 한도 초과가 한 번 나면 그날 남은 사업은 부르지 않고 지난번 값을 그대로 둔다.
      *
-     * @param reuseWhenUnchanged true면 원문 수정일이 지난번과 같고 상세를 받아 둔 사업은 다시 부르지 않는다(지자체).
-     *                           중앙은 목록에 수정일이 없어 매번 부른다(약 110건).
+     * @param local true면 지자체(원문 수정일로 판단), false면 중앙(목록에 수정일이 없어 요일 순번으로 판단)
+     * @param today 중앙의 요일 순번 계산용
      */
     static List<BenefitDraft> enrich(PublicDataHttp http, String url, boolean local, List<BenefitDraft> drafts,
-            Function<String, Optional<Benefit>> previous, boolean reuseWhenUnchanged) {
+            Function<String, Optional<Benefit>> previous, LocalDate today) {
         List<BenefitDraft> result = new ArrayList<>(drafts.size());
         int calls = 0;
-        int failures = 0;
         int reused = 0;
+        int skippedByQuota = 0;
+        List<String> failures = new ArrayList<>();
+        boolean quotaExceeded = false;
         for (BenefitDraft draft : drafts) {
             Optional<Benefit> prev = previous.apply(draft.id());
-            if (reuseWhenUnchanged && prev.isPresent() && prev.get().getTargetText() != null
-                    && Objects.equals(prev.get().getSourceModified(), draft.sourceModified())) {
-                Benefit p = prev.get();
-                result.add(draft.withDetail(null, p.getTargetText(), p.getCriteriaText(), p.getSupportText(),
-                        p.getApplyMethod(), p.getApplyPeriod(), null));
-                reused++;
+            if (quotaExceeded || !needsCall(draft, prev.orElse(null), local, today)) {
+                if (quotaExceeded) {
+                    skippedByQuota++;
+                } else {
+                    reused++;
+                }
+                result.add(reuse(draft, prev.orElse(null), local));
                 continue;
             }
             calls++;
@@ -70,13 +75,57 @@ final class BokjiroDetail {
                         body -> parse(body, local));
                 result.add(draft.withDetail(d.summary(), d.target(), d.criteria(), d.support(), d.applyMethod(),
                         d.applyPeriod(), d.body()));
+            } catch (QuotaExceededException e) {
+                quotaExceeded = true;
+                failures.add(e.getMessage());
+                result.add(reuse(draft, prev.orElse(null), local));
             } catch (FeedException e) {
-                failures++;
-                result.add(draft);
+                failures.add(e.getMessage());
+                result.add(reuse(draft, prev.orElse(null), local));
             }
         }
-        log.info("복지로 상세({}): 호출 {}건(실패 {}건), 재사용 {}건", local ? "지자체" : "중앙", calls, failures, reused);
+        String kind = local ? "지자체" : "중앙";
+        log.info("복지로 상세({}): 호출 {}건(실패 {}건), 재사용 {}건, 한도 초과로 건너뜀 {}건",
+                kind, calls, failures.size(), reused, skippedByQuota);
+        failures.forEach(f -> log.warn("복지로 상세({}) 실패: {}", kind, f));
         return result;
+    }
+
+    /** 중앙 상세를 다시 받는 주기(일) — 사업마다 요일을 나눠 하루 약 1/7씩 새로 받는다. */
+    static final int CENTRAL_REFRESH_DAYS = 7;
+
+    /**
+     * 상세 API를 불러야 하는가.
+     * <ul>
+     *   <li>지난번 상세가 없으면(처음 보는 사업·지난번 실패) 부른다.</li>
+     *   <li>지자체: 원문 수정일이 지난번과 다르면 부른다.</li>
+     *   <li>중앙: 목록에 수정일이 없어 바뀜을 알 수 없다 → 사업마다 정해진 요일에만 새로 받는다(7일에 한 번).</li>
+     * </ul>
+     */
+    static boolean needsCall(BenefitDraft draft, Benefit prev, boolean local, LocalDate today) {
+        if (prev == null || prev.getTargetText() == null) {
+            return true;
+        }
+        if (local) {
+            return !Objects.equals(prev.getSourceModified(), draft.sourceModified());
+        }
+        return refreshSlot(draft.sourceId()) == Math.floorMod(today.toEpochDay(), CENTRAL_REFRESH_DAYS);
+    }
+
+    static int refreshSlot(String sourceId) {
+        return Math.floorMod(sourceId.hashCode(), CENTRAL_REFRESH_DAYS);
+    }
+
+    /**
+     * 지난번에 저장해 둔 상세를 다시 쓴다. 없으면 목록 내용만.
+     * 중앙은 요약도 상세본(wlfareInfoOutlCn)으로 바꿔 저장했으므로 지난번 요약을 그대로 쓴다 — 날마다 목록본과 오가지 않게.
+     */
+    private static BenefitDraft reuse(BenefitDraft draft, Benefit prev, boolean local) {
+        if (prev == null || prev.getTargetText() == null) {
+            return draft;
+        }
+        return draft.withDetail(local ? null : prev.getSummary(), prev.getTargetText(), prev.getCriteriaText(), prev.getSupportText(),
+                prev.getApplyMethod(), prev.getApplyPeriod(), null);
     }
 
     static Detail parse(String body, boolean local) {
