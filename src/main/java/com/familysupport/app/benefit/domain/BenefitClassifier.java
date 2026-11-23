@@ -25,7 +25,12 @@ import java.util.regex.Pattern;
  */
 public final class BenefitClassifier {
 
-    private static final Pattern PREPARING = Pattern.compile("난임|예비부모|예비부부|임신\\s?사전|임신\\s?전|가임|난자|정자");
+    /**
+     * '정자'는 앞에 한글이 붙으면 다른 낱말이다(선정자·결정자·난민인정자·생활안정자·예정자 — 2026-11-23 실제 데이터에서
+     * 예비부모 사업 437건 중 83건이 이것으로만 걸렸다). '정자 동결', '난자·정자'처럼 앞이 한글이 아닐 때만 본다.
+     */
+    private static final Pattern PREPARING = Pattern.compile(
+            "난임|예비부모|예비부부|임신\\s?사전|임신\\s?전|가임|난자|(?<![가-힣])정자");
     private static final Pattern PREGNANT = Pattern.compile("임신|임산부|임부|태아|산전");
     private static final Pattern BIRTH = Pattern.compile("출산|출생|산후|산모|신생아|입양|첫만남");
     // "아이" 단독은 "아이디" 등 잡음이 많아 넣지 않는다. 아이 나이 조건(7세 이하)으로 보완한다.

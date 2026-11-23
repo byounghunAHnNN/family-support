@@ -90,6 +90,17 @@ class RegionAndIncomeTest {
     }
 
     @Test
+    void 정자는_선정자_결정자_같은_낱말_안에서는_예비부모로_보지_않는다() {
+        // 2026-11-23 실제 문구: "전세사기피해 결정자 100만원", "난민인정자", "졸업예정자"
+        assertThat(classify("전세사기피해 결정자 긴급생계비")).doesNotContain(LifeStage.PREPARING);
+        assertThat(classify("난민인정자 정착 지원")).doesNotContain(LifeStage.PREPARING);
+        assertThat(classify("선정자 교육비 지원")).doesNotContain(LifeStage.PREPARING);
+        // 진짜 생식세포 '정자'는 그대로
+        assertThat(classify("영구 불임 예상 난자·정자 냉동 지원사업")).contains(LifeStage.PREPARING);
+        assertThat(classify("정자 동결 보존 비용 지원")).contains(LifeStage.PREPARING);
+    }
+
+    @Test
     void 분류_v6_잡음은_버린다() {
         // 기관 대상(정부24 사용자구분), 창업 보육, 사업명 제외어, 가정위탁, 농림축산어업
         assertThat(BenefitClassifier.classify(new BenefitClassifier.Input("직장어린이집 설치비용 지원", null, null,

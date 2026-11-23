@@ -94,6 +94,17 @@ body {
     margin-left: 3px;
 }
 
+/* 검색어 결과가 탭·칩 때문에 가려질 때 안내 */
+.search-hint {
+    background: #f3f7f6;
+    border: 1px solid #dfe8e5;
+    border-radius: 8px;
+    padding: 6px 12px;
+    margin-bottom: 12px;
+    font-size: .85rem;
+    color: #444;
+}
+
 /* ── 격자·카드 ─────────────────────────────── */
 .benefit-grid {
     display: grid;

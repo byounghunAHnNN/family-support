@@ -252,6 +252,7 @@
             list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
         }
         $('count').textContent = list.length + '건';
+        renderSearchHint(byKeyword, list);
         if (list.length === 0) {
             if (view.status === 'FAVORITE') {
                 $('grid').innerHTML = '<p class="text-muted">별표(☆)를 눌러 관심 사업을 모아 둘 수 있습니다. 이 브라우저에만 저장됩니다.</p>';
@@ -266,6 +267,25 @@
             return;
         }
         $('grid').innerHTML = list.map(card).join('');
+    }
+
+    /** 검색어에 맞는데 지금 탭·칩 때문에 안 보이는 사업이 있으면 알려 준다. '관심' 탭은 일부러 고른 것이라 띄우지 않는다. */
+    function renderSearchHint(byKeyword, list) {
+        const hint = $('searchHint');
+        const hidden = byKeyword.length - list.length;
+        if (!view.keyword || hidden <= 0 || view.status === 'FAVORITE') {
+            hint.classList.add('d-none');
+            return;
+        }
+        const shown = new Set(list);
+        const excludedOnly = view.status !== 'EXCLUDED'
+            && byKeyword.filter((i) => !shown.has(i)).every((i) => i.status === 'EXCLUDED');
+        hint.innerHTML = `🔍 '${esc(view.keyword)}' ${byKeyword.length}건 중 <strong>${list.length}건</strong>만 보입니다 — `
+            + (excludedOnly
+                ? `<button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-goto="EXCLUDED">제외 탭에 ${hidden}건</button>`
+                : `탭·칩 때문에 ${hidden}건이 가려져 있습니다. `
+                    + '<button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-reset-filters>탭·칩 풀기</button>');
+        hint.classList.remove('d-none');
     }
 
     /** 칩마다 건수를 붙인다. 건수가 0이고 선택도 안 된 칩은 숨긴다. */
@@ -411,6 +431,16 @@
         $('keyword').addEventListener('input', (e) => {
             view.keyword = e.target.value.trim();
             render();
+        });
+        $('searchHint').addEventListener('click', (e) => {
+            if (e.target.closest('[data-reset-filters]')) {
+                view.types.clear();
+                view.fields.clear();
+                selectTab('ALL');
+                return;
+            }
+            const goto = e.target.closest('[data-goto]');
+            if (goto) selectTab(goto.dataset.goto);
         });
         $('sort').addEventListener('change', (e) => {
             view.sort = e.target.value;

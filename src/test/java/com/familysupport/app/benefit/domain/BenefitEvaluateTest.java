@@ -101,6 +101,27 @@ class BenefitEvaluateTest {
             assertThat(evaluate(Drafts.gov24("1", "난임 시술비").conditions(18, 120, ALL_BANDS, "JA0410"),
                     Profiles.seoulSongpa().parentAge(50)).status()).isEqualTo(EligibilityStatus.MATCHED);
         }
+
+        @Test
+        void 상한_없는_60세_이상_사업은_나이가_낮으면_제외_폐렴구균() {
+            // 2026-11-23 실제 저장값: 65~120세. 30세에게 조건 일치로 나왔던 사례
+            Drafts.Builder pneumococcus = Drafts.gov24("1", "65세 이상 폐렴구균 국가예방접종사업")
+                    .conditions(65, 120, ALL_BANDS, "JA0410");
+            Eligibility young = evaluate(pneumococcus, Profiles.seoulSongpa().parentAge(30));
+            assertThat(young.excluded()).isTrue();
+            assertThat(young.reasons()).anyMatch(r -> r.contains("65세 이상 대상"));
+
+            assertThat(evaluate(pneumococcus, Profiles.seoulSongpa()).status()).isEqualTo(EligibilityStatus.CHECK);
+            assertThat(evaluate(pneumococcus, Profiles.seoulSongpa().parentAge(70)).status())
+                    .isEqualTo(EligibilityStatus.MATCHED);
+        }
+
+        @Test
+        void 상한_없는_60세_미만_하한은_확인_필요() {
+            Drafts.Builder over40 = Drafts.gov24("1", "중장년 지원").conditions(40, 120, ALL_BANDS, "JA0410");
+            assertThat(evaluate(over40, Profiles.seoulSongpa().parentAge(30)).status()).isEqualTo(EligibilityStatus.CHECK);
+            assertThat(evaluate(over40, Profiles.seoulSongpa().parentAge(45)).status()).isEqualTo(EligibilityStatus.MATCHED);
+        }
     }
 
     @Nested
