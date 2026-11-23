@@ -21,6 +21,10 @@ public final class Drafts {
         return new Builder(BenefitSource.BOKJIRO_LOCAL, id, name);
     }
 
+    public static Builder bokjiroCentral(String id, String name) {
+        return new Builder(BenefitSource.BOKJIRO_CENTRAL, id, name);
+    }
+
     public static final class Builder {
         private final BenefitSource source;
         private final String id;

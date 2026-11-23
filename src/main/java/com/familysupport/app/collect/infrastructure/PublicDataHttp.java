@@ -66,10 +66,17 @@ public class PublicDataHttp {
                     Thread.sleep(RETRY_WAIT.toMillis());
                 }
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                // 일일 한도 초과는 그날 내내 거절되므로 다시 시도하지 않는다
+                if (response.statusCode() == 429
+                        || (response.body() != null && response.body().contains(QuotaExceededException.MARKER))) {
+                    throw new QuotaExceededException(name);
+                }
                 if (response.statusCode() == 200) {
                     return parser.apply(response.body());
                 }
                 lastError = "HTTP " + response.statusCode();
+            } catch (QuotaExceededException e) {
+                throw e;
             } catch (FeedException e) {
                 lastError = e.getMessage();
             } catch (IOException e) {

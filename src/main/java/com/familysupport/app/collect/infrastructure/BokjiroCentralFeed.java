@@ -8,7 +8,9 @@ import com.familysupport.app.benefit.domain.LifeStage;
 import com.familysupport.app.benefit.domain.RegionScope;
 import com.familysupport.app.collect.domain.BenefitFeed;
 import com.familysupport.app.collect.domain.FeedException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +22,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * 복지로 중앙부처 복지서비스 — 한국사회보장정보원. 전부 전국 사업이다.
- * 목록 응답에 요약·생애주기·가구유형·상세 링크가 있어 상세 조회는 하지 않는다(나이·소득 조건은 원문 링크로).
+ * 목록 응답의 요약·생애주기·가구유형·상세 링크에 상세 API 문장(지원대상·선정기준·지원내용)을 붙인다.
+ * 목록에 수정일이 없어 상세는 사업마다 7일에 한 번만 새로 받고, 그 사이에는 저장해 둔 값을 쓴다({@link BokjiroDetail}).
  */
 @Slf4j
 @Component
@@ -32,9 +35,11 @@ public class BokjiroCentralFeed implements BenefitFeed {
     private static final int MAX_PAGES = 10;
 
     private final PublicDataHttp http;
+    private final Clock clock;
 
-    public BokjiroCentralFeed(PublicDataHttp http) {
+    public BokjiroCentralFeed(PublicDataHttp http, Clock clock) {
         this.http = http;
+        this.clock = clock;
     }
 
     @Override
@@ -54,7 +59,7 @@ public class BokjiroCentralFeed implements BenefitFeed {
             if (result.items().isEmpty() || rows.size() >= result.totalCount()) {
                 List<BenefitDraft> drafts = rows.stream().map(BokjiroCentralFeed::toDraft).flatMap(Optional::stream).toList();
                 log.info("복지로 중앙: 전체 {}건 중 대상 {}건", rows.size(), drafts.size());
-                return BokjiroDetail.enrich(http, BokjiroDetail.CENTRAL_URL, false, drafts, previous, false);
+                return BokjiroDetail.enrich(http, BokjiroDetail.CENTRAL_URL, false, drafts, previous, LocalDate.now(clock));
             }
         }
         throw new FeedException("복지로 중앙 목록이 " + MAX_PAGES + "쪽을 넘습니다.");
