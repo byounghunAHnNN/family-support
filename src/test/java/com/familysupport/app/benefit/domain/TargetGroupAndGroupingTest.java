@@ -49,6 +49,26 @@ class TargetGroupAndGroupingTest {
     }
 
     @Test
+    void 이름_앞의_연도와_끝의_지급_지원_사업은_무시하고_묶는다() {
+        BenefitDraft gov = Drafts.gov24("1", "2026년 천사지원금 지급").sido("인천광역시").stages().build();
+        BenefitDraft bok = Drafts.bokjiroLocal("W1", "천사지원금 지급").sido("인천광역시")
+                .stages(LifeStage.BIRTH, LifeStage.INFANT).build();
+        assertThat(gov.groupKey()).isEqualTo(bok.groupKey());
+        assertThat(Drafts.gov24("2", "출산축하금 지급").sigungu("경기도", "광명시").build().groupKey())
+                .isEqualTo(Drafts.bokjiroLocal("W2", "출산축하금지원 사업").sigungu("경기도", "광명시").build().groupKey());
+        assertThat(Drafts.gov24("3", "'26년 임신축하금 지원").build().groupKey())
+                .isEqualTo(Drafts.bokjiroCentral("W3", "임신축하금 지급").build().groupKey());
+
+        // 정부24 쪽이 문구 때문에 빠져도 복지로 쪽 상황으로 남는다
+        List<BenefitDraft> aligned = BenefitClassifier.alignAcrossSources(List.of(gov, bok));
+        assertThat(aligned.get(0).stages()).containsExactlyInAnyOrder(LifeStage.BIRTH, LifeStage.INFANT);
+
+        // 숫자로 끝나는 다른 이름은 그대로 구분한다
+        assertThat(Drafts.gov24("4", "2단계 출산장려금").build().groupKey())
+                .isNotEqualTo(Drafts.gov24("5", "출산장려금").build().groupKey());
+    }
+
+    @Test
     void 한쪽_출처만_빠진_같은_사업은_다른_출처의_상황으로_남기고_짝이_없으면_상황_없이_남긴다() {
         BenefitDraft govDropped = Drafts.gov24("1", "출생축하금 지원").sigungu("인천광역시", "계양구").stages().build();
         BenefitDraft bokKept = Drafts.bokjiroLocal("W1", "출생축하금").sigungu("인천광역시", "계양구").stages(LifeStage.BIRTH).build();
