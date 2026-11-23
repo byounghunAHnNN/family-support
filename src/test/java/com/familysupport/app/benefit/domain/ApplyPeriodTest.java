@@ -53,13 +53,40 @@ class ApplyPeriodTest {
     }
 
     @Test
-    void 원문_등록일_수정일로_NEW와_변경을_가른다() {
+    void NEW는_원문_등록일_30일_이내() {
         LocalDateTime now = LocalDateTime.of(2026, 11, 20, 5, 0);
         assertThat(Benefit.create(Drafts.gov24("1", "a").registered("20261105090000").build(), now).freshness(TODAY))
                 .isEqualTo(Freshness.NEW);
-        assertThat(Benefit.create(Drafts.gov24("2", "b").registered("20250101000000").modified("20261101000000").build(), now)
-                .freshness(TODAY)).isEqualTo(Freshness.UPDATED);
-        assertThat(Benefit.create(Drafts.gov24("3", "c").registered("2025-01-01").modified("20260101").build(), now)
-                .freshness(TODAY)).isEqualTo(Freshness.NONE);
+        assertThat(Benefit.create(Drafts.gov24("3", "c").registered("2025-01-01").build(), now).freshness(TODAY))
+                .isEqualTo(Freshness.NONE);
+    }
+
+    @Test
+    void 변경은_출처_수정일이_아니라_다시_받은_내용이_실제로_바뀐_때() {
+        LocalDateTime first = LocalDateTime.of(2026, 11, 1, 5, 0);
+        LocalDateTime later = LocalDateTime.of(2026, 11, 15, 5, 0);
+        Benefit b = Benefit.create(Drafts.gov24("1", "출산축하금").registered("20250101").modified("20261101")
+                .summary("50만원 지원").build(), first);
+        // 처음 저장만 했으면 변경 아님(출처 수정일이 최근이어도)
+        assertThat(b.freshness(TODAY)).isEqualTo(Freshness.NONE);
+
+        // 수정일만 바뀌고 내용이 같으면 변경 아님 — 기관의 일괄 수정일 갱신
+        b.refresh(Drafts.gov24("1", "출산축하금").registered("20250101").modified("20261114").summary("50만원 지원").build(), later);
+        assertThat(b.freshness(TODAY)).isEqualTo(Freshness.NONE);
+
+        // 문장이 바뀌면 변경
+        b.refresh(Drafts.gov24("1", "출산축하금").registered("20250101").modified("20261114").summary("100만원 지원").build(), later);
+        assertThat(b.freshness(TODAY)).isEqualTo(Freshness.UPDATED);
+        assertThat(b.freshness(TODAY.plusDays(40))).isEqualTo(Freshness.NONE);
+    }
+
+    @Test
+    void 비었던_문장이_채워지거나_빠진_것은_변경이_아니다() {
+        // 상세 API가 한도 초과로 실패했다가 다음 날 채워지는 경우(2026-11-23 복지로 중앙)
+        Benefit b = Benefit.create(Drafts.gov24("1", "아동수당").registered("20250101").build(), LocalDateTime.of(2026, 11, 1, 5, 0));
+        b.refresh(Drafts.gov24("1", "아동수당").registered("20250101").target("만 8세 미만 아동").build(), LocalDateTime.of(2026, 11, 15, 5, 0));
+        assertThat(b.freshness(TODAY)).isEqualTo(Freshness.NONE);
+        b.refresh(Drafts.gov24("1", "아동수당").registered("20250101").build(), LocalDateTime.of(2026, 11, 16, 5, 0));
+        assertThat(b.freshness(TODAY)).isEqualTo(Freshness.NONE);
     }
 }
