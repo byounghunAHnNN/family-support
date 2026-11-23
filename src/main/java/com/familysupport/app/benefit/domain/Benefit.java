@@ -188,8 +188,10 @@ public class Benefit {
     }
 
     /**
-     * 같은 사업 묶기 기준 — 이름(공백·기호·끝의 '지원사업/사업/지원/서비스' 무시) + 지역.
+     * 같은 사업 묶기 기준 — 이름(공백·기호·앞의 연도·끝의 '지원사업/사업/지원/서비스/지급' 무시) + 지역.
      * 전체 데이터에서 이 기준으로 묶이는 152묶음을 확인했을 때 다른 사업이 묶인 경우는 없었다(2026-11-20).
+     * 앞의 연도("2026년")·끝의 '지급'은 2026-11-23 추가 — 정부24 "2026년 천사지원금 지급"과 복지로 "천사지원금 지급"처럼
+     * 출처마다 이름이 조금 달라 못 묶이던 11묶음을 2,023건으로 확인했다(모두 같은 사업).
      */
     public String groupKey() {
         return groupKeyOf(name, scope, sido, sigungu);
@@ -197,7 +199,9 @@ public class Benefit {
 
     public static String groupKeyOf(String name, RegionScope scope, String sido, String sigungu) {
         String n = nz(name).replaceAll("[\\s()\\[\\]·ㆍ\\-_「」『』<>]", "")
-                .replaceAll("(지원사업|사업|지원|서비스)$", "");
+                .replaceAll("^(20\\d\\d|[’'‘]?\\d\\d)년(도)?", "")
+                .replaceAll("(지원사업|사업|지원|서비스)$", "")
+                .replaceAll("(지급|지원|사업)$", "");
         return n + "|" + scope + "|" + nz(sido) + "|" + nz(sigungu);
     }
 
