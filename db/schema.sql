@@ -33,6 +33,7 @@ CREATE TABLE benefit (
     source_modified VARCHAR(30)       NULL COMMENT '원문 수정일(출처 표기 그대로)',
     source_registered VARCHAR(30)     NULL COMMENT '원문 등록일(정부24 등록일시, 복지로 중앙 최초등록일) — NEW 표시',
     collected_at    DATETIME      NOT NULL COMMENT '우리가 마지막으로 받은 시각',
+    content_changed_at DATETIME       NULL COMMENT '다시 받았을 때 원문 내용(문장·조건)이 실제로 바뀐 시각 — 변경 표시. 처음 저장 후 바뀐 적 없으면 NULL',
     PRIMARY KEY (id),
     CONSTRAINT ck_benefit_source CHECK (source IN ('GOV24', 'BOKJIRO_CENTRAL', 'BOKJIRO_LOCAL')),
     CONSTRAINT ck_benefit_scope  CHECK (scope IN ('NATIONAL', 'SIDO', 'SIGUNGU')),

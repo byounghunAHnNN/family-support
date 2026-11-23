@@ -22,6 +22,8 @@ public record SupportConditions(Integer ageFrom, Integer ageTo, String incomeBan
     static final int CHILD_AGE_MAX = 18;
     /** 나이 상한이 이 값 이상이면 사실상 제한 없음(예: 18~120세). */
     private static final int NO_AGE_LIMIT = 100;
+    /** 나이 하한이 이 값 이상이면 노인 대상 사업으로 본다(정부24 저장분: 60·65·75·80·90세 이상 등). */
+    static final int SENIOR_AGE_FROM = 60;
 
     /** 가구유형 조건 코드 → 화면 문구. */
     static final List<String[]> HOUSEHOLD_CODES = List.of(
@@ -48,6 +50,19 @@ public record SupportConditions(Integer ageFrom, Integer ageTo, String incomeBan
 
     public boolean hasAdultAgeLimit() {
         return ageTo != null && ageTo > CHILD_AGE_MAX && ageTo < NO_AGE_LIMIT;
+    }
+
+    /**
+     * 상한 없이 하한만 있는 성인 나이 조건(예: 40~120세). 정부24는 "○세 이상"을 상한 120으로 준다 —
+     * 상한만 보면 제한 없음이라 하한을 놓친다(2026-11-23: 65세 이상 폐렴구균이 30세에게 조건 일치로 나옴).
+     */
+    public boolean hasAdultAgeFloor() {
+        return ageFrom != null && ageFrom > CHILD_AGE_MAX && (ageTo == null || ageTo >= NO_AGE_LIMIT);
+    }
+
+    /** 노인 대상(하한 60세 이상) — 임신·육아 가구의 신청자 나이로 보면 확실히 다르다. */
+    public boolean isSeniorOnly() {
+        return ageFrom != null && ageFrom >= SENIOR_AGE_FROM;
     }
 
     /** 해당 구간이 허용되는가. 소득 정보가 없으면 true(막지 않는다). */

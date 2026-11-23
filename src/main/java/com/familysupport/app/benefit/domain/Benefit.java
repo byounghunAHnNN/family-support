@@ -102,6 +102,9 @@ public class Benefit {
     @Column(nullable = false)
     private LocalDateTime collectedAt;
 
+    /** 우리가 다시 받았을 때 원문 내용이 실제로 바뀐 시각. 처음 저장한 뒤 바뀐 적 없으면 null. */
+    private LocalDateTime contentChangedAt;
+
     /** 새 사업 저장용. */
     public static Benefit create(BenefitDraft draft, LocalDateTime collectedAt) {
         Benefit benefit = new Benefit();
@@ -118,6 +121,7 @@ public class Benefit {
      * 잘린 경우 끝에 "…"이 붙고, 전체 원문은 공식 링크에서 본다.
      */
     public void refresh(BenefitDraft draft, LocalDateTime collectedAt) {
+        List<String> before = this.collectedAt == null ? null : contentFields();
         this.name = fit(draft.name(), 1000);
         this.organization = fit(draft.organization(), 1000);
         this.scope = draft.scope();
@@ -149,6 +153,34 @@ public class Benefit {
         this.fields = categories.fieldsCsv();
         this.targetGroups = categories.targetGroupsCsv();
         this.collectedAt = collectedAt;
+        if (before != null && contentChanged(before, contentFields())) {
+            this.contentChangedAt = collectedAt;
+        }
+    }
+
+    /**
+     * '변경' 판단에 쓰는 내용 — 사용자가 보는 원문 문장과 조건만. 우리가 계산하는 값(대상 상황·카테고리)과
+     * 출처의 수정일·조회수는 넣지 않는다(2026-11-23: 출처 수정일 기준이면 46%가 '변경', 원문 해시는 조회수 때문에 매일 바뀜).
+     */
+    private List<String> contentFields() {
+        return java.util.Arrays.asList(name, summary, targetText, criteriaText, supportText, applyMethod, applyPeriod,
+                contact, householdTypes, ageFrom == null ? null : ageFrom.toString(),
+                ageTo == null ? null : ageTo.toString(), incomeBands);
+    }
+
+    /**
+     * 전과 후 모두 값이 있는데 다르면 바뀐 것. 비었다가 채워지거나(상세 API가 늦게 성공) 값이 빠진 것(호출 실패)은
+     * 출처 내용이 바뀐 게 아닐 수 있어 변경으로 보지 않는다.
+     */
+    static boolean contentChanged(List<String> before, List<String> after) {
+        for (int i = 0; i < before.size(); i++) {
+            String b = before.get(i);
+            String a = after.get(i);
+            if (b != null && a != null && !b.equals(a)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public BenefitCategories categories() {
@@ -237,14 +269,18 @@ public class Benefit {
     }
 
     /**
-     * 새로 등록됐거나 최근 바뀐 사업인가(원문 날짜 기준, 30일). 등록일이 없는 출처(복지로 지자체)는 '변경'만 알 수 있다.
+     * 새로 등록됐거나 최근 바뀐 사업인가(30일).
+     * NEW는 출처 등록일 기준(복지로 지자체는 등록일이 없어 NEW가 없다).
+     * '변경'은 출처 수정일이 아니라 우리가 다시 받아 비교했을 때 내용이 실제로 바뀐 시각({@link #contentChangedAt}) 기준이다 —
+     * 기관이 수정일만 일괄로 바꾸는 경우가 많아 수정일 기준이면 46%(927건)에 '변경'이 붙었다(2026-11-20).
      */
     public Freshness freshness(LocalDate today) {
         LocalDate since = today.minusDays(FRESH_DAYS);
         if (isOnOrAfter(sourceRegistered, since)) {
             return Freshness.NEW;
         }
-        return isOnOrAfter(sourceModified, since) ? Freshness.UPDATED : Freshness.NONE;
+        return contentChangedAt != null && !contentChangedAt.toLocalDate().isBefore(since)
+                ? Freshness.UPDATED : Freshness.NONE;
     }
 
     /** 원문 날짜(yyyyMMdd…, yyyy-MM-dd…)의 날짜 부분이 기준일 이후인가. 읽을 수 없으면 false. */
@@ -303,7 +339,17 @@ public class Benefit {
             } else if (outOfRange(profile.childAge(), c)) {
                 result.exclude("아이 나이 조건(" + ageRange + ")에 맞지 않습니다.");
             }
-        } else if (c.hasAdultAgeLimit() && profile.parentAge() != null && outOfRange(profile.parentAge(), c)) {
+        } else if (c.isSeniorOnly()) {
+            // 60세 이상 대상 — 내 나이가 하한보다 낮으면 확실히 아니다
+            if (profile.parentAge() == null) {
+                result.check(c.ageFrom() + "세 이상 대상 사업입니다 — 해당되는지 확인하세요.");
+            } else if (profile.parentAge() < c.ageFrom()) {
+                result.exclude(c.ageFrom() + "세 이상 대상 사업입니다(입력한 나이 " + profile.parentAge() + "세).");
+            } else if (outOfRange(profile.parentAge(), c)) {
+                result.check("나이 조건(" + ageRange + ")을 확인하세요.");
+            }
+        } else if ((c.hasAdultAgeLimit() || c.hasAdultAgeFloor())
+                && profile.parentAge() != null && outOfRange(profile.parentAge(), c)) {
             // 신청자 나이로 보이지만 누구 나이인지 데이터에 없어 제외하지 않는다
             result.check("나이 조건(" + ageRange + ")을 확인하세요.");
         }
