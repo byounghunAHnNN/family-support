@@ -33,6 +33,17 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+// 정적 파일 캐시 무효화 — index.html의 css·js 링크 ?v=@assetVersion@ 를 빌드 시각으로 바꾼다.
+// Cloudflare가 /css·/js를 4시간 캐시하므로, 배포할 때마다 주소가 달라져야 새 파일이 바로 보인다(2026-11-24).
+def assetVersion = new Date().format('yyyyMMddHHmm', TimeZone.getTimeZone('Asia/Seoul'))
+tasks.named('processResources') {
+	inputs.property('assetVersion', assetVersion)
+	filteringCharset = 'UTF-8'
+	filesMatching('static/index.html') {
+		filter(org.apache.tools.ant.filters.ReplaceTokens, tokens: [assetVersion: assetVersion])
+	}
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 	systemProperty 'spring.profiles.active', 'test'
