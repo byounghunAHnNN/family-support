@@ -134,6 +134,18 @@ body {
     flex-direction: column;
     height: 210px;
     min-width: 0;
+    position: relative;
+}
+
+/* 별표는 카드 오른쪽 위에 고정 — 머리 줄 배지가 넘칠 때 별표만 다음 줄로 떨어지지 않게(2026-11-24) */
+.bcard .meta {
+    padding-right: 22px;
+}
+
+.bcard .fav {
+    position: absolute;
+    top: 12px;
+    right: 10px;
 }
 
 .bcard.MATCHED {

@@ -61,6 +61,12 @@ public record BenefitDraft(
                 householdTypes, conditions, sourceModified, sourceRegistered, raw);
     }
 
+    public BenefitDraft withSupportTypeText(String newSupportTypeText) {
+        return new BenefitDraft(source, sourceId, name, organization, scope, sido, sigungu, fieldName, newSupportTypeText,
+                summary, targetText, criteriaText, supportText, applyMethod, applyPeriod, detailUrl, contact, stages,
+                householdTypes, conditions, sourceModified, sourceRegistered, raw);
+    }
+
     public BenefitDraft withRaw(RawSource newRaw) {
         return new BenefitDraft(source, sourceId, name, organization, scope, sido, sigungu, fieldName, supportTypeText,
                 summary, targetText, criteriaText, supportText, applyMethod, applyPeriod, detailUrl, contact, stages,

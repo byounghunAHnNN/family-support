@@ -128,17 +128,34 @@ public final class BenefitClassifier {
      * 출처 사이 맞추기 — 같은 사업(이름·지역 같음)이 다른 출처에서 대상으로 남았으면, 여기서 빠진 초안도 그 상황으로 남긴다.
      * 출처마다 문구가 달라 한쪽만 제외 문구에 걸리는 경우(예: 정부24 "출생축하금 지원"만 빠짐)를 막는다.
      * 맞출 짝이 없는 빈 상황 초안은 그대로 둔다(애매한 사업 — 상황 없이 저장해 '제외' 탭에 보인다).
+     * 지원 방식도 같이 맞춘다 — 한쪽 원문이 "기타"뿐이고 짝이 구체적인 방식이면 짝의 방식을 쓴다
+     * (2026-11-24: 정부24 "2026년 천사지원금 지급"은 지원유형 "기타", 복지로는 "현금" — 이런 묶음 11곳).
      */
     public static List<BenefitDraft> alignAcrossSources(List<BenefitDraft> drafts) {
         Map<String, Set<LifeStage>> kept = new HashMap<>();
-        drafts.stream().filter(d -> !d.stages().isEmpty())
-                .forEach(d -> kept.computeIfAbsent(d.groupKey(), k -> EnumSet.noneOf(LifeStage.class)).addAll(d.stages()));
+        Map<String, String> knownType = new HashMap<>();
+        for (BenefitDraft d : drafts) {
+            if (!d.stages().isEmpty()) {
+                kept.computeIfAbsent(d.groupKey(), k -> EnumSet.noneOf(LifeStage.class)).addAll(d.stages());
+            }
+            if (!onlyEtcType(d)) {
+                knownType.putIfAbsent(d.groupKey(), d.supportTypeText());
+            }
+        }
         List<BenefitDraft> result = new ArrayList<>();
         for (BenefitDraft d : drafts) {
-            result.add(d.stages().isEmpty() && kept.containsKey(d.groupKey())
-                    ? d.withStages(kept.get(d.groupKey())) : d);
+            BenefitDraft aligned = d.stages().isEmpty() && kept.containsKey(d.groupKey())
+                    ? d.withStages(kept.get(d.groupKey())) : d;
+            if (onlyEtcType(aligned) && knownType.containsKey(aligned.groupKey())) {
+                aligned = aligned.withSupportTypeText(knownType.get(aligned.groupKey()));
+            }
+            result.add(aligned);
         }
         return result;
+    }
+
+    private static boolean onlyEtcType(BenefitDraft d) {
+        return BenefitCategories.of(d.supportTypeText(), null, null, null).supportTypes().equals(List.of(SupportType.ETC));
     }
 
     private static boolean excludedByName(Input in) {

@@ -69,6 +69,31 @@ class TargetGroupAndGroupingTest {
     }
 
     @Test
+    void 한쪽_원문이_기타뿐이면_같은_사업의_다른_출처_지원_방식을_쓴다() {
+        BenefitDraft gov = Drafts.gov24("1", "2026년 천사지원금 지급").sido("인천광역시").supportType("기타").build();
+        BenefitDraft bok = Drafts.bokjiroLocal("W1", "천사지원금 지급").sido("인천광역시").supportType("현금").build();
+        BenefitDraft lonely = Drafts.gov24("2", "구민 정보화교육").supportType("기타").build();
+
+        List<BenefitDraft> aligned = BenefitClassifier.alignAcrossSources(List.of(gov, bok, lonely));
+
+        assertThat(Benefit.create(aligned.get(0), NOW).categories().supportTypes()).containsExactly(SupportType.CASH);
+        assertThat(Benefit.create(aligned.get(1), NOW).categories().supportTypes()).containsExactly(SupportType.CASH);
+        // 짝이 없으면 원문 그대로(기타)
+        assertThat(Benefit.create(aligned.get(2), NOW).categories().supportTypes()).containsExactly(SupportType.ETC);
+    }
+
+    @Test
+    void 구체적인_지원_방식은_짝과_달라도_그대로_둔다() {
+        BenefitDraft gov = Drafts.gov24("1", "출산축하금 지급").sigungu("경기도", "광명시").supportType("현물").build();
+        BenefitDraft bok = Drafts.bokjiroLocal("W1", "출산축하금지원 사업").sigungu("경기도", "광명시").supportType("현금").build();
+
+        List<BenefitDraft> aligned = BenefitClassifier.alignAcrossSources(List.of(gov, bok));
+
+        assertThat(aligned.get(0).supportTypeText()).isEqualTo("현물");
+        assertThat(aligned.get(1).supportTypeText()).isEqualTo("현금");
+    }
+
+    @Test
     void 한쪽_출처만_빠진_같은_사업은_다른_출처의_상황으로_남기고_짝이_없으면_상황_없이_남긴다() {
         BenefitDraft govDropped = Drafts.gov24("1", "출생축하금 지원").sigungu("인천광역시", "계양구").stages().build();
         BenefitDraft bokKept = Drafts.bokjiroLocal("W1", "출생축하금").sigungu("인천광역시", "계양구").stages(LifeStage.BIRTH).build();
